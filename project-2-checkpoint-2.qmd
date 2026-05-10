@@ -18,7 +18,7 @@ embed-resources: true
 # Global Trends
 
 ```{r}
-api_key <- "314JqlQckum8oqJ4M3No5Z4oeKCnxYQ9aRXJRJ8W"
+api_key <- "INSERT API KEY HERE"
 library(httr)
 library(tidyjson)
 library(jsonlite)
