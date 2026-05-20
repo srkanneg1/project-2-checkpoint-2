@@ -54,7 +54,7 @@ get_region <- function(region) {
   txt <- content(res, as = "text", encoding = "UTF-8")
   df <- fromJSON(txt, flatten = TRUE)
 
-  as_tibble(df) %>%
+  as_tibble(df) |>
     transmute(
       country_api = coalesce(name.common, name.official),
       region = region,
@@ -66,7 +66,7 @@ region_list <- c("africa","americas","asia","europe","oceania")
 
 country_region_lookup <- map_dfr(region_list, get_region)
 
-plastic_data_clean <- plastics %>%
+plastic_data_clean <- plastics |>
   mutate(
     country_clean = str_squish(country),
     country_clean = recode(
@@ -81,12 +81,12 @@ plastic_data_clean <- plastics %>%
     )
   )
 
-lookup_clean <- country_region_lookup %>%
+lookup_clean <- country_region_lookup |>
   mutate(country_clean = str_squish(country_api))
 
-plastic_with_region <- plastic_data_clean %>%
+plastic_with_region <- plastic_data_clean |>
   left_join(
-    lookup_clean %>% select(country_clean, region, population),
+    lookup_clean |> select(country_clean, region, population),
     by = "country_clean"
   )
 
@@ -169,7 +169,7 @@ bar_data <- dominant_gdp |>
 
 ```{r}
 
-cleanup_country_year <- plastics %>%
+cleanup_country_year <- plastics |>
   mutate(
     country_clean = str_squish(country),
     country_clean = recode(
@@ -184,18 +184,18 @@ cleanup_country_year <- plastics %>%
       "Taiwan_ Republic of China (ROC)" = "Taiwan",
       .default = country_clean
     )
-  ) %>%
+  ) |>
   left_join(
-    lookup_clean %>% select(country_clean, region),
+    lookup_clean |> select(country_clean, region),
     by = "country_clean"
-  ) %>%
-  group_by(country, country_clean, region, year) %>%
+  ) |>
+  group_by(country, country_clean, region, year) |>
   summarise(
     total_plastic = sum(grand_total, na.rm = TRUE),
     total_volunteers = sum(volunteers, na.rm = TRUE),
     avg_efficiency = total_plastic / total_volunteers,
     .groups = "drop"
-  ) %>%
+  ) |>
   filter(
     !is.na(region),
     is.finite(avg_efficiency),
@@ -325,7 +325,7 @@ get_region <- function(region) {
   stop_for_status(res)
   txt <- content(res, as = "text", encoding = "UTF-8")
   df <- fromJSON(txt, flatten = TRUE)
-  as_tibble(df) %>%
+  as_tibble(df) |>
     transmute(
       country_api = coalesce(name.common, name.official),
       region = region,
@@ -333,11 +333,11 @@ get_region <- function(region) {
     )
 }
 
-country_region_lookup <- map_dfr(region_list, get_region) %>%
-  distinct() %>%
+country_region_lookup <- map_dfr(region_list, get_region) |>
+  distinct() |>
   filter(!is.na(country_api))
 
-plastic_data_clean <- plastics %>%
+plastic_data_clean <- plastics |>
   mutate(
     country_clean = str_squish(country),
     country_clean = recode(
@@ -354,8 +354,8 @@ plastic_data_clean <- plastics %>%
     )
   )
 
-lookup_clean <- country_region_lookup %>%
-  mutate(country_clean = str_squish(country_api)) %>%
+lookup_clean <- country_region_lookup |>
+  mutate(country_clean = str_squish(country_api)) |>
   mutate(
     country_clean = recode(
       country_clean,
@@ -391,7 +391,7 @@ get_GDP <- function(country, key = api_key) {
     return(empty_gdp)
   }
 
-  as_tibble(out) %>%
+  as_tibble(out) |>
     select(any_of(names(empty_gdp)))
 }
 
@@ -444,8 +444,8 @@ combined_2019 <- inner_join(
 
 combined_2019 <- unique(combined_2019)
 
-gdpbyregion <- combined_2019 %>%
-  mutate(country_clean = countrycode(iso, "iso3c", "country.name", warn = FALSE)) %>%
+gdpbyregion <- combined_2019 |>
+  mutate(country_clean = countrycode(iso, "iso3c", "country.name", warn = FALSE)) |>
   mutate(
     country_clean = recode(
       country_clean,
@@ -455,49 +455,49 @@ gdpbyregion <- combined_2019 %>%
       "South Korea" = "South Korea",
       .default = country_clean
     )
-  ) %>%
+  ) |>
   left_join(
-    lookup_clean %>% select(country_clean, region),
+    lookup_clean |> select(country_clean, region),
     by = "country_clean"
-  ) %>%
-  filter(!is.na(region)) %>%
-  group_by(region) %>%
+  ) |>
+  filter(!is.na(region)) |>
+  group_by(region) |>
   summarise(
     avg_gdp_per_capita = mean(gdp_per_capita_nominal, na.rm = TRUE),
     median_gdp_per_capita = median(gdp_per_capita_nominal, na.rm = TRUE),
     countries_included = n_distinct(iso),
     .groups = "drop"
-  ) %>%
+  ) |>
   arrange(desc(avg_gdp_per_capita))
 
-gdpbyregion_gt <- gdpbyregion %>%
-  mutate(region = str_to_title(region)) %>%
-  gt() %>%
+gdpbyregion_gt <- gdpbyregion |>
+  mutate(region = str_to_title(region)) |>
+  gt() |>
   tab_header(
     title = md("**GDP Summary by Region**")
-  ) %>%
+  ) |>
   cols_label(
     region = md("**Region**"),
     avg_gdp_per_capita = md("**Average GDP per Capita**"),
     median_gdp_per_capita = md("**Median GDP per Capita**"),
     countries_included = md("**Countries Included**")
-  ) %>%
+  ) |>
   fmt_currency(
     columns = c(avg_gdp_per_capita, median_gdp_per_capita),
     currency = "USD",
     decimals = 0
-  ) %>%
+  ) |>
   fmt_number(
     columns = countries_included,
     decimals = 0,
     use_seps = TRUE
-  ) %>%
+  ) |>
   tab_options(
     table.font.size = px(13),
     heading.title.font.weight = "bold",
     column_labels.font.weight = "bold"
-  ) %>%
-  opt_table_outline() %>%
+  ) |>
+  opt_table_outline() |>
   tab_source_note(
     source_note = md("A table showing average and median GDP per capita, along with the number of countries included, for each region.")
   )
@@ -507,9 +507,9 @@ gdpbyregion_gt
 
 ## Comprehensive Regional Data
 ```{r}
-cleanupbyregion <- plastic_with_region %>%
-  filter(!is.na(region), !is.na(num_events), num_events > 0) %>%
-  split(.$region) %>%
+cleanupbyregion <- plastic_with_region |>
+  filter(!is.na(region), !is.na(num_events), num_events > 0) |>
+  split(.$region) |>
   map_dfr(function(df) {
     tibble(
       region = first(df$region),
@@ -517,18 +517,18 @@ cleanupbyregion <- plastic_with_region %>%
       total_events = sum(df$num_events, na.rm = TRUE),
       avg_efficiency = total_plastic / total_events
     )
-  }) %>%
+  }) |>
   arrange(desc(avg_efficiency))
 
 region_model_data <- cleanupbyregion |>
   inner_join(gdpbyregion, by = "region")
 
-region_model_data_gt <- region_model_data %>%
-  mutate(region = str_to_title(region)) %>%
-  gt() %>%
+region_model_data_gt <- region_model_data |>
+  mutate(region = str_to_title(region)) |>
+  gt() |>
   tab_header(
     title = md("**Regional Model Data**")
-  ) %>%
+  ) |>
   cols_label(
     region = md("**Region**"),
     total_plastic = md("**Total Plastic**"),
@@ -537,28 +537,28 @@ region_model_data_gt <- region_model_data %>%
     avg_gdp_per_capita = md("**Average GDP per Capita**"),
     median_gdp_per_capita = md("**Median GDP per Capita**"),
     countries_included = md("**Countries Included**")
-  ) %>%
+  ) |>
   fmt_number(
     columns = c(total_plastic, total_events, avg_efficiency),
     decimals = 2,
     use_seps = TRUE
-  ) %>%
+  ) |>
   fmt_currency(
     columns = c(avg_gdp_per_capita, median_gdp_per_capita),
     currency = "USD",
     decimals = 0
-  ) %>%
+  ) |>
   fmt_number(
     columns = countries_included,
     decimals = 0,
     use_seps = TRUE
-  ) %>%
+  ) |>
   tab_options(
     table.font.size = px(13),
     heading.title.font.weight = "bold",
     column_labels.font.weight = "bold"
-  ) %>%
-  opt_table_outline() %>%
+  ) |>
+  opt_table_outline() |>
   tab_source_note(
     source_note = md("A combined regional table used for modeling cleanup efficiency against GDP per capita.")
   )
